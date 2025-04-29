@@ -38,9 +38,9 @@ jobs:
     - name: List APK directory
       run: ls app/build/outputs/apk/debug/
 
-    # 上传 APK
+    # 使用 actions/upload-artifact@v2 上传 APK
     - name: Upload APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: app-debug.apk
         path: app/build/outputs/apk/debug/app-debug.apk
