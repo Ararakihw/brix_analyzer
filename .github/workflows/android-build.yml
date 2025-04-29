@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-latest
 
     steps:
@@ -20,11 +20,17 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
+    - name: Set up Gradle
+      uses: gradle/gradle-build-action@v2
+
     - name: Grant execute permission for gradlew
       run: chmod +x ./gradlew
 
     - name: Build APK
       run: ./gradlew assembleDebug
+
+    - name: Check if APK was generated
+      run: ls app/build/outputs/apk/debug/
 
     - name: Upload APK
       uses: actions/upload-artifact@v3
