@@ -1,52 +1,51 @@
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.image import Image
-from kivy.uix.label import Label
-from kivy.uix.button import Button
-from kivy.core.text import LabelBase
-from plyer import filechooser
-import numpy as np
+from flask import Flask, request, jsonify, render_template
+import os
 import joblib
-from spectrum_utils import extract_spectrum_features
+import numpy as np
+import uuid
+from utils.spectrum_utils import extract_spectrum_features
+from werkzeug.utils import secure_filename
+from sklearn.ensemble import RandomForestRegressor  # 引入 RandomForestRegressor
 
-# 注册中文字体（SimHei.ttf）
-LabelBase.register(name="SimHei", fn_regular="fonts/SimHei.ttf")
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads/'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-
-class SugarPredictor(BoxLayout):
-    def __init__(self, **kwargs):
-        super().__init__(orientation='vertical', **kwargs)
-
-        self.img = Image(size_hint=(1, .6))
-        self.add_widget(self.img)
-
-        self.lbl = Label(text="请选择光谱图", font_name="SimHei", font_size=20, size_hint=(1, .1))
-        self.add_widget(self.lbl)
-
-        btn = Button(text="打开相册", font_name="SimHei", font_size=18, size_hint=(1, .15))
-        btn.bind(on_press=lambda x: filechooser.open_file(on_selection=self.selected))
-        self.add_widget(btn)
-
-        self.model = joblib.load("model/spectrum_brix_model.pkl")
-
-    def selected(self, selection):
-        if not selection:
-            return
-        path = selection[0]
-        self.img.source = path
-        self.lbl.text = "分析中..."
-        try:
-            feat = extract_spectrum_features(path).reshape(1, -1)
-            brix = float(self.model.predict(feat)[0])
-            self.lbl.text = f"预测糖度：{brix:.2f} °Brix"
-        except Exception as e:
-            self.lbl.text = f"出错啦：{e}"
+# 加载模型（确保这里加载的是训练好的随机森林回归模型）
+model = joblib.load("model/random_forest_brix_model.pkl")  # 加载随机森林模型
 
 
-class BrixApp(App):
-    def build(self):
-        return SugarPredictor()
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('index.html')
+
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    if 'image' not in request.files:
+        return jsonify({'error': '请上传图片'}), 400
+
+    file = request.files['image']
+    filename = secure_filename(file.filename)
+
+    # 使用 uuid 生成随机文件名，并保留原始文件扩展名
+    file_ext = os.path.splitext(filename)[1]  # 获取文件的扩展名
+    random_filename = str(uuid.uuid4()) + file_ext  # 生成随机文件名
+
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], random_filename)
+    file.save(filepath)
+
+    try:
+        # 提取光谱特征
+        features = extract_spectrum_features(filepath).reshape(1, -1)
+
+        # 使用训练好的随机森林模型进行预测
+        brix = float(model.predict(features)[0])
+
+        return jsonify({'brix': round(brix, 2)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
-    BrixApp().run()
+    app.run(host='0.0.0.0', port=5000)
