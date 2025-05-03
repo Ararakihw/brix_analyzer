@@ -17,7 +17,7 @@ model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
 # 保存模型
-joblib.dump(model, "model/random_forest_brix_model.pkl")
+joblib.dump(model, "model/other_model.pkl")
 print("✅ 随机森林回归模型已保存")
 
 # 验证模型

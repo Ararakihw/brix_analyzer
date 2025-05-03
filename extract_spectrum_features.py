@@ -72,7 +72,7 @@ def process_test_data(test_dir, output_csv):
     print(f"✅ 预测数据已保存到 {output_csv}")
 
 # 调用函数处理数据
-train_dir = "train"  # 训练数据文件夹
+train_dir = "train/other"  # 训练数据文件夹
 test_dir = "test"    # 预测数据文件夹
 process_training_data(train_dir, "data/train_data.csv")  # 训练数据
 process_test_data(test_dir, "data/test_data.csv")  # 预测数据
